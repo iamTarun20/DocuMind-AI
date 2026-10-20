@@ -46,4 +46,33 @@ class DocumentExtractorTest {
         qs.set(0,new Question("Question",List.of("Same","same","Three","Four"),0,"Explanation",excerpt));
         assertThatThrownBy(() -> GeminiQuizGenerator.validate(qs,excerpt)).isInstanceOf(IllegalStateException.class);
     }
+    @Test void acceptsEquivalentPdfUnicodeSpacingAndLigatures() {
+        String source = "An o\ufb03ce supports\u00a0civil\u202fadministration and public service.";
+        String excerpt = "An office supports civil administration and public service.";
+        var questions = new ArrayList<Question>();
+        for (int i = 0; i < 10; i++) questions.add(new Question("Question " + i,
+            List.of("One", "Two", "Three", "Four"), 0, "Explanation", excerpt));
+        assertThatCode(() -> GeminiQuizGenerator.validate(questions, source)).doesNotThrowAnyException();
+        questions.set(0, new Question("Question zero", List.of("One", "Two", "Three", "Four"),
+            0, "Explanation", "An office opposes civil administration and public service."));
+        assertThatThrownBy(() -> GeminiQuizGenerator.validate(questions, source))
+            .hasMessageContaining("Question 1 failed validation")
+            .hasMessageContaining("supporting excerpt could not be matched");
+    }
+    @Test void rejectsOptionsThatOnlyDifferByUnicodeSpacing() {
+        String source = "Primary keys uniquely identify rows.";
+        var questions = new ArrayList<Question>();
+        for (int i = 0; i < 10; i++) questions.add(new Question("Question " + i,
+            List.of("First choice", "First\u00a0choice", "Third", "Fourth"), 0, "Explanation", source));
+        assertThatThrownBy(() -> GeminiQuizGenerator.validate(questions, source))
+            .hasMessageContaining("answer options are duplicates");
+    }
+    @Test void rejectsInvisibleExcerptsAfterNormalization() {
+        String source = "Primary keys uniquely identify rows.";
+        var questions = new ArrayList<Question>();
+        for (int i = 0; i < 10; i++) questions.add(new Question("Question " + i,
+            List.of("One", "Two", "Three", "Four"), 0, "Explanation", "\u00ad".repeat(20)));
+        assertThatThrownBy(() -> GeminiQuizGenerator.validate(questions, source))
+            .hasMessageContaining("supporting excerpt could not be matched");
+    }
 }
