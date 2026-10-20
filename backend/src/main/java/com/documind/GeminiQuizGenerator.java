@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.*;
 import java.net.URI;
 import java.net.http.*;
 import java.time.Duration;
+import java.text.Normalizer;
 import java.util.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -67,17 +68,39 @@ class GeminiQuizGenerator implements QuizGenerator {
         if (questions == null || questions.size() != 10) throw new IllegalStateException("The document did not produce 10 valid questions. Try more substantial study material.");
         Set<String> prompts = new HashSet<>();
         String source = normalize(text);
-        for (Question q : questions) {
-            if (q == null || blank(q.prompt()) || q.prompt().length() > 1200 || q.options() == null || q.options().size() != 4 ||
-                q.options().stream().anyMatch(GeminiQuizGenerator::blank) || q.options().stream().anyMatch(o -> o.length() > 800) ||
-                q.options().stream().map(GeminiQuizGenerator::normalize).distinct().count() != 4 ||
-                q.correctIndex() == null || q.correctIndex() < 0 || q.correctIndex() > 3 || blank(q.explanation()) || q.explanation().length() > 2000 ||
-                blank(q.sourceExcerpt()) || q.sourceExcerpt().length() < 15 || q.sourceExcerpt().length() > 1500 ||
-                !source.contains(normalize(q.sourceExcerpt())) || !prompts.add(normalize(q.prompt()))) {
-                throw new IllegalStateException("The AI returned unsupported or invalid questions. Please try again.");
-            }
+        for (int i = 0; i < questions.size(); i++) {
+            Question q = questions.get(i);
+            if (q == null || blank(q.prompt()) || q.prompt().length() > 1200)
+                throw invalid(i, "the question text is missing or too long");
+            if (q.options() == null || q.options().size() != 4 ||
+                q.options().stream().anyMatch(GeminiQuizGenerator::blank) ||
+                q.options().stream().anyMatch(o -> o.length() > 800))
+                throw invalid(i, "four nonempty options within the length limit are required");
+            if (q.options().stream().map(GeminiQuizGenerator::normalize).distinct().count() != 4)
+                throw invalid(i, "some answer options are duplicates");
+            if (q.correctIndex() == null || q.correctIndex() < 0 || q.correctIndex() > 3)
+                throw invalid(i, "the correct answer index is invalid");
+            if (blank(q.explanation()) || q.explanation().length() > 2000)
+                throw invalid(i, "the explanation is missing or too long");
+            if (blank(q.sourceExcerpt()) || q.sourceExcerpt().length() < 15 || q.sourceExcerpt().length() > 1500)
+                throw invalid(i, "the supporting excerpt is missing or outside the length limit");
+            String excerpt = normalize(q.sourceExcerpt());
+            if (excerpt.isBlank() || !source.contains(excerpt))
+                throw invalid(i, "the supporting excerpt could not be matched to the document");
+            if (!prompts.add(normalize(q.prompt())))
+                throw invalid(i, "this question repeats an earlier question");
         }
     }
+    private static IllegalStateException invalid(int index, String reason) {
+        // Report the failed check without exposing document text or provider payloads.
+        return new IllegalStateException("Question " + (index + 1) + " failed validation: " + reason + ". Please try again.");
+    }
     private static boolean blank(String s) { return s == null || s.isBlank(); }
-    private static String normalize(String s) { return s.strip().replaceAll("\\s+", " ").toLowerCase(Locale.ROOT); }
+    private static String normalize(String s) {
+        // PDF fonts and spacing can encode identical-looking text differently.
+        // Normalize typography only; fabricated or paraphrased evidence must still fail.
+        return Normalizer.normalize(s, Normalizer.Form.NFKC)
+            .replace("\u00ad", "")
+            .strip().replaceAll("(?U)\\s+", " ").toLowerCase(Locale.ROOT);
+    }
 }
