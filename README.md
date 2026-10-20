@@ -19,9 +19,9 @@ Built with **React, TypeScript, Java, Spring Boot, PostgreSQL, and the Gemini AP
 
 ## How it works
 
-The backend extracts text with Apache PDFBox, saves a generation job in PostgreSQL, and processes it with a background worker. The worker asks Gemini for structured questions, checks the response, and stores the completed quiz. The frontend polls for progress and presents the questions once they are ready.
+The backend extracts text with Apache PDFBox, saves a generation job in PostgreSQL, and processes it with a background worker. The worker divides the text into numbered passages and asks Gemini for structured questions that cite those passage IDs. The backend resolves each valid ID to the original passage text, checks the questions, and stores the completed quiz. The frontend polls for progress and presents the questions once they are ready.
 
-Validation checks the number of questions, option uniqueness, answer indices, duplicate prompts, and whether supporting excerpts appear in the extracted text. These checks improve traceability; they do not guarantee that every answer is factually correct or that ten questions cover an entire chapter.
+Validation checks the number of questions, option uniqueness, answer indices, duplicate prompts, and whether each cited passage exists. Source excerpts come from backend-owned document text, rather than quotations rewritten by the model. These checks improve traceability; a valid passage ID does not prove that the answer follows from that passage, and ten questions cannot cover an entire chapter exhaustively.
 
 | Layer | Technology | Responsibility |
 | --- | --- | --- |

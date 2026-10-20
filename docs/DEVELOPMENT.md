@@ -27,7 +27,8 @@ A Codespace is a development environment, **not production hosting**. Stop it wh
 - Accepts readable PDF and UTF-8 TXT files.
 - Returns a persisted job immediately after extraction, then generates questions on a single background worker.
 - Generates exactly 10 questions, each with four distinct options, one correct answer, an explanation, and a supporting excerpt.
-- Validates structure, duplicate prompts/options, answer indices, and excerpt presence before making a quiz available.
+- Sends numbered source passages to Gemini, checks the returned passage IDs, and attaches the original passage text on the backend.
+- Validates structure, duplicate prompts/options, answer indices, and evidence provenance before making a quiz available.
 - Keeps correct answers and explanations out of the quiz GET response; grades attempts on the server.
 - Allows retakes, quiz history, and deletion in the browser session that created the quiz.
 - Shows provider quota failures and interrupted jobs explicitly; does not silently retry calls that might consume quota.
@@ -73,7 +74,7 @@ docs/                API contract and next implementation phases
 compose.yml          Private single-host Docker packaging
 ```
 
-PDFBox extracts document text in the backend. PostgreSQL stores queued jobs and completed quizzes. A scheduled single worker claims queued jobs with a conditional update, calls Gemini outside a database transaction, validates the output, and persists completion or failure. Polling reads the job status. No local LLM, embedding service, vector database, Redis or Kafka is required for this release.
+PDFBox extracts document text in the backend. PostgreSQL stores queued jobs and completed quizzes. A scheduled single worker claims queued jobs with a conditional update, divides text into numbered passages, and calls Gemini outside a database transaction. The model returns a passage ID for each question; the backend resolves it to the original text, validates the output, and persists completion or failure. The passage splitter preserves all extracted text within the existing document limits; it is not a pipeline for larger files. Polling reads the job status. No local LLM, embedding service, vector database, Redis or Kafka is required for this release.
 
 On restart, queued jobs resume, while processing jobs become failed with a clear message, preventing automatic repeat API calls. Run **one backend replica only**. The admission lock, worker recovery logic and global budget admission are designed for a single-instance MVP. Multiple replicas need distributed admission, worker leases and idempotency.
 
