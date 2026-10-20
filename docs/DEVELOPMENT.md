@@ -1,4 +1,4 @@
-# DocuMind AI
+# Development guide
 
 Turn a text PDF or TXT document into a focused 10-question study session.
 
@@ -121,7 +121,7 @@ Open `http://localhost:3000`. Only the frontend is bound to the host, on loopbac
 
 ## Public hosting and larger documents
 
-See [docs/ROADMAP.md](docs/ROADMAP.md) for staged upgrades. Before public exposure: add identity-based authentication and authorization, per-user/IP abuse controls, TLS, managed database backups and monitoring. Next, move to managed PostgreSQL, deploy the backend separately, and host frontend assets with a same-origin API proxy. For large files, add object storage with presigned uploads, a durable queue, bounded-memory extraction, chunking, hierarchical coverage selection, and worker time/resource budgets. Increase limits only after measuring representative files.
+See [docs/ROADMAP.md](ROADMAP.md) for staged upgrades. Before public exposure: add identity-based authentication and authorization, per-user/IP abuse controls, TLS, managed database backups and monitoring. Next, move to managed PostgreSQL, deploy the backend separately, and host frontend assets with a same-origin API proxy. For large files, add object storage with presigned uploads, a durable queue, bounded-memory extraction, chunking, hierarchical coverage selection, and worker time/resource budgets. Increase limits only after measuring representative files.
 
 ## Official references
 
