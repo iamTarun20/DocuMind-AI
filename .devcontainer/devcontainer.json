@@ -1,0 +1,14 @@
+{
+  "name": "DocuMind AI",
+  "dockerComposeFile": "compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspaces/DocuMind-AI",
+  "features": {
+    "ghcr.io/devcontainers/features/java:1": { "version": "21", "installMaven": "true" },
+    "ghcr.io/devcontainers/features/node:1": { "version": "22" }
+  },
+  "forwardPorts": [5173],
+  "portsAttributes": { "5173": { "label": "DocuMind AI", "onAutoForward": "notify", "visibility": "private" }, "8080": { "onAutoForward": "ignore" }, "5432": { "onAutoForward": "ignore" } },
+  "postCreateCommand": "bash scripts/setup.sh",
+  "customizations": { "vscode": { "extensions": ["vscjava.vscode-java-pack", "vmware.vscode-spring-boot", "dbaeumer.vscode-eslint"] } }
+}
